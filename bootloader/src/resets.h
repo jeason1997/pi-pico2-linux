@@ -43,7 +43,7 @@ static inline void set_reset(uint8_t reset_num, uint8_t reset_val) {
 	if (reset_val)
 		RESETS_BASE[0] |= BIT(reset_num);
 	else
-		RESETS_BASE[0] &= NBIT(eset_num);
+		RESETS_BASE[0] &= NBIT(reset_num);
 
 	loop_until_bit_is_set(RESETS_BASE[2], reset_num);
 }

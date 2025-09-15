@@ -5,15 +5,14 @@
 #include "resets.h"
 #include "rp2350-map.h"
 
-#define UART_UARTCR			12
-#define UART_UARTCR_UARTEN_BITS		0x00000001
-#define UART_UARTCR_TXE_BITS		0x00000100
-#define UART_UARTCR_RXE_BITS		0x00000200
+#define UART_UARTCR		12
+#define UART_UARTCR_UARTEN_BITS	BIT(0)
+#define UART_UARTCR_TXE_BITS	BIT(8)
+#define UART_UARTCR_RXE_BITS	BIT(9)
 
-#define UART_UARTFR			6
-#define UART_UARTFR_TXFF_BITS		0x00000020
-#define UART_UARTFR_RXFE_BITS		0x00000010
-#define UART_UARTFR_BSY_BITS		0x00000008
+#define UART_UARTFR		6
+#define UART_UARTFR_TXFF_SHIFT	5
+#define UART_UARTFR_RXFE_SHIFT	4
 
 #define UART_UARTIBRD		9
 #define UART_UARTFBRD		10
@@ -47,7 +46,7 @@ void uart_init(void) {
 }
 
 static inline void uart_send(char c) {
-	loop_until_bit_is_clear(UART0_BASE[UART_UARTFR], UART_UARTFR_TXFF_BITS);
+	loop_until_bit_is_clear(UART0_BASE[UART_UARTFR], UART_UARTFR_TXFF_SHIFT);
 	*((uint8_t *)UART0_BASE) = c;
 }
 
@@ -65,7 +64,7 @@ int uart_puts(const char *str) {
 }
 
 int uart_getc(void) {
-	if (UART0_BASE[UART_UARTFR] & UART_UARTFR_RXFE_BITS)
+	if (bit_is_set(UART0_BASE[UART_UARTFR], UART_UARTFR_RXFE_SHIFT))
 		return -1;
 
 	return *((uint8_t *)UART0_BASE);
