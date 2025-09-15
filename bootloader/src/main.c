@@ -8,6 +8,7 @@
 #include "resets.h"
 #include "uart.h"
 #include "clocks.h"
+#include "linux/vsprintf.h"
 
 #define LED_PIN			25
 
@@ -46,8 +47,8 @@ int main(void) {
 	while (1) {
 		char buffer[100];
 		sprintf(buffer, "Hello, %s! The answer is %d.\n", "World", 42);
-		puts(buffer);
-		uart_puts(500000);
+		uart_puts(buffer);
+		delay(500000);
 		SIO_BASE[0x28/4] = BIT(LED_PIN); // OUT_XOR
 	}
 }

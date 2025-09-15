@@ -21,10 +21,10 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <limits.h>
-#include <ctype.h>
 #include <stdbool.h>
 #include <string.h>
 #include <errno.h>
+#include "ctype.h"
 
 #include "extra.h"
 #include "types.h"
