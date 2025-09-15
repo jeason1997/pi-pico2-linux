@@ -1,3 +1,78 @@
+#include <stdint.h>
+#include <stddef.h>
+#include <stdio.h>
+
+#include "rp2350-map.h"
+#include "helpers.h"
+
+#define QMI_DIRECT_CSR			0
+#define QMI_DIRECT_CSR_CLKDIV_LSB	22
+#define QMI_DIRECT_CSR_EN_BITS		BIT(0)
+#define QMI_DIRECT_CSR_BUSY_BITS	BIT(1)
+#define QMI_DIRECT_CSR_ASSERT_CS1N_BITS	BIT(3)
+#define QMI_DIRECT_CSR_TXEMPTY_BITS	BIT(11)
+
+#define QMI_DIRECT_TX			1
+#define QMI_DIRECT_TX_OE_BITS		BIT(19)
+#define QMI_DIRECT_TX_IWIDTH_LSB	16
+#define QMI_DIRECT_TX_IWIDTH_VALUE_Q	0x2
+
+#define QMI_DIRECT_RX			2
+
+#define QMI_M1_TIMING			(0x20/4)
+#define QMI_M1_TIMING_PAGEBREAK_VALUE_1024	0x2
+#define QMI_M1_TIMING_PAGEBREAK_LSB	28
+#define QMI_M1_TIMING_SELECT_HOLD_LSB	23
+#define QMI_M1_TIMING_COOLDOWN_LSB	30
+#define QMI_M1_TIMING_RXDELAY_LSB	8
+#define QMI_M1_TIMING_MAX_SELECT_LSB	17
+#define QMI_M1_TIMING_MIN_DESELECT_LSB	12
+#define QMI_M1_TIMING_CLKDIV_LSB	0
+
+#define QMI_M1_RFMT			(0x24/4)
+#define QMI_M1_RFMT_PREFIX_WIDTH_VALUE_Q	0x2
+#define QMI_M1_RFMT_PREFIX_WIDTH_LSB	0
+#define QMI_M1_RFMT_ADDR_WIDTH_LSB	2
+#define QMI_M1_RFMT_ADDR_WIDTH_VALUE_Q	0x2
+#define QMI_M1_RFMT_SUFFIX_WIDTH_VALUE_Q	0x2
+#define QMI_M1_RFMT_SUFFIX_WIDTH_LSB	4
+#define QMI_M1_RFMT_DUMMY_WIDTH_VALUE_Q	0x2
+#define QMI_M1_RFMT_DUMMY_WIDTH_LSB	6
+#define QMI_M1_RFMT_DUMMY_LEN_VALUE_24	0x6
+#define QMI_M1_RFMT_DUMMY_LEN_LSB	16
+#define QMI_M1_RFMT_DATA_WIDTH_VALUE_Q	0x2
+#define QMI_M1_RFMT_DATA_WIDTH_LSB	8
+#define QMI_M1_RFMT_PREFIX_LEN_VALUE_8	0x1
+#define QMI_M1_RFMT_PREFIX_LEN_LSB	12
+#define QMI_M1_RFMT_SUFFIX_LEN_VALUE_NONE	0x0
+#define QMI_M1_RFMT_SUFFIX_LEN_LSB	14
+
+
+#define QMI_M1_RCMD			(0x28/4)
+#define QMI_M1_RCMD_PREFIX_LSB	0
+#define QMI_M1_RCMD_SUFFIX_LSB	8
+
+#define QMI_M1_WFMT			(0x2C/4)
+#define QMI_M1_WFMT_PREFIX_WIDTH_VALUE_Q	0x2
+#define QMI_M1_WFMT_PREFIX_WIDTH_LSB	0
+#define QMI_M1_WFMT_ADDR_WIDTH_VALUE_Q	0x2
+#define QMI_M1_WFMT_ADDR_WIDTH_LSB	2
+#define QMI_M1_WFMT_SUFFIX_WIDTH_VALUE_Q	0x2
+#define QMI_M1_WFMT_SUFFIX_WIDTH_LSB	4
+#define QMI_M1_WFMT_DUMMY_WIDTH_VALUE_Q	0x2
+#define QMI_M1_WFMT_DUMMY_WIDTH_LSB	6
+#define QMI_M1_WFMT_DUMMY_LEN_VALUE_NONE	0x0
+#define QMI_M1_WFMT_DUMMY_LEN_LSB	16
+#define QMI_M1_WFMT_DATA_WIDTH_VALUE_Q	0x2
+#define QMI_M1_WFMT_DATA_WIDTH_LSB	8
+#define QMI_M1_WFMT_PREFIX_LEN_VALUE_8	0x1
+#define QMI_M1_WFMT_PREFIX_LEN_LSB	12
+#define QMI_M1_WFMT_SUFFIX_LEN_VALUE_NONE	0x0
+#define QMI_M1_WFMT_SUFFIX_LEN_LSB	14
+
+#define QMI_M1_WCMD			(0x30/4)
+#define QMI_M1_WCMD_PREFIX_LSB	0
+#define QMI_M1_WCMD_SUFFIX_LSB	8
 
 // The ID check is from the Circuit Python code that was downloaded from:
 // https://github.com/raspberrypi/pico-sdk-rp2350/issues/12#issuecomment-2055274428
@@ -12,115 +87,115 @@
 //
 // The datasheets from both these IC's are almost identical (word for word), with the first being ESP32 branded
 //
-
-static size_t __no_inline_not_in_flash_func(setup_psram)(uint psram_cs_pin)
+//__no_inline_not_in_flash_func
+size_t setup_psram(unsigned int psram_cs_pin)
 {
-	gpio_set_function(psram_cs_pin, GPIO_FUNC_XIP_CS1);
+	//gpio_set_function(psram_cs_pin, GPIO_FUNC_XIP_CS1);
 
 	size_t psram_size = 0;
-	uint32_t intr_stash = save_and_disable_interrupts();
+	//uint32_t intr_stash = save_and_disable_interrupts();
 
 	// Try and read the PSRAM ID via direct_csr.
-	qmi_hw->direct_csr = 30 << QMI_DIRECT_CSR_CLKDIV_LSB | QMI_DIRECT_CSR_EN_BITS;
+	XIP_QMI_BASE[QMI_DIRECT_CSR] = 30 << QMI_DIRECT_CSR_CLKDIV_LSB | QMI_DIRECT_CSR_EN_BITS;
 	// Need to poll for the cooldown on the last XIP transfer to expire
 	// (via direct-mode BUSY flag) before it is safe to perform the first
 	// direct-mode operation
-	while ((qmi_hw->direct_csr & QMI_DIRECT_CSR_BUSY_BITS) != 0)
+	while ((XIP_QMI_BASE[QMI_DIRECT_CSR] & QMI_DIRECT_CSR_BUSY_BITS) != 0)
 	{
 	}
 
 	// Exit out of QMI in case we've inited already
-	qmi_hw->direct_csr |= QMI_DIRECT_CSR_ASSERT_CS1N_BITS;
+	XIP_QMI_BASE[QMI_DIRECT_CSR] |= QMI_DIRECT_CSR_ASSERT_CS1N_BITS;
 	// Transmit as quad.
-	qmi_hw->direct_tx = QMI_DIRECT_TX_OE_BITS | QMI_DIRECT_TX_IWIDTH_VALUE_Q << QMI_DIRECT_TX_IWIDTH_LSB | 0xf5;
-	while ((qmi_hw->direct_csr & QMI_DIRECT_CSR_BUSY_BITS) != 0)
+	XIP_QMI_BASE[QMI_DIRECT_TX] = QMI_DIRECT_TX_OE_BITS | QMI_DIRECT_TX_IWIDTH_VALUE_Q << QMI_DIRECT_TX_IWIDTH_LSB | 0xf5;
+	while ((XIP_QMI_BASE[QMI_DIRECT_CSR] & QMI_DIRECT_CSR_BUSY_BITS) != 0)
 	{
 	}
-	(void)qmi_hw->direct_rx;
-	qmi_hw->direct_csr &= ~(QMI_DIRECT_CSR_ASSERT_CS1N_BITS);
+	(void)XIP_QMI_BASE[QMI_DIRECT_RX];
+	XIP_QMI_BASE[QMI_DIRECT_CSR] &= ~(QMI_DIRECT_CSR_ASSERT_CS1N_BITS);
 
 	// Read the id
-	qmi_hw->direct_csr |= QMI_DIRECT_CSR_ASSERT_CS1N_BITS;
+	XIP_QMI_BASE[QMI_DIRECT_CSR] |= QMI_DIRECT_CSR_ASSERT_CS1N_BITS;
 	uint8_t kgd = 0;
 	uint8_t eid = 0;
 	for (size_t i = 0; i < 7; i++)
 	{
 		if (i == 0)
 		{
-			qmi_hw->direct_tx = 0x9f;
+			XIP_QMI_BASE[QMI_DIRECT_TX] = 0x9f;
 		}
 		else
 		{
-			qmi_hw->direct_tx = 0xff;
+			XIP_QMI_BASE[QMI_DIRECT_TX] = 0xff;
 		}
-		while ((qmi_hw->direct_csr & QMI_DIRECT_CSR_TXEMPTY_BITS) == 0)
+		while ((XIP_QMI_BASE[QMI_DIRECT_CSR] & QMI_DIRECT_CSR_TXEMPTY_BITS) == 0)
 		{
 		}
-		while ((qmi_hw->direct_csr & QMI_DIRECT_CSR_BUSY_BITS) != 0)
+		while ((XIP_QMI_BASE[QMI_DIRECT_CSR] & QMI_DIRECT_CSR_BUSY_BITS) != 0)
 		{
 		}
 		if (i == 5)
 		{
-			kgd = qmi_hw->direct_rx;
+			kgd = XIP_QMI_BASE[QMI_DIRECT_RX];
 		}
 		else if (i == 6)
 		{
-			eid = qmi_hw->direct_rx;
+			eid = XIP_QMI_BASE[QMI_DIRECT_RX];
 		}
 		else
 		{
-			(void)qmi_hw->direct_rx;
+			(void)XIP_QMI_BASE[QMI_DIRECT_RX];
 		}
 	}
 	// Disable direct csr.
-	qmi_hw->direct_csr &= ~(QMI_DIRECT_CSR_ASSERT_CS1N_BITS | QMI_DIRECT_CSR_EN_BITS);
+	XIP_QMI_BASE[QMI_DIRECT_CSR] &= ~(QMI_DIRECT_CSR_ASSERT_CS1N_BITS | QMI_DIRECT_CSR_EN_BITS);
 
 	if (kgd != 0x5D)
 	{
 		printf("Invalid PSRAM ID: %x\n", kgd);
-		restore_interrupts(intr_stash);
+		//restore_interrupts(intr_stash);
 		return psram_size;
 	}
 
 	// Enable quad mode.
-	qmi_hw->direct_csr = 30 << QMI_DIRECT_CSR_CLKDIV_LSB | QMI_DIRECT_CSR_EN_BITS;
+	XIP_QMI_BASE[QMI_DIRECT_CSR] = 30 << QMI_DIRECT_CSR_CLKDIV_LSB | QMI_DIRECT_CSR_EN_BITS;
 	// Need to poll for the cooldown on the last XIP transfer to expire
 	// (via direct-mode BUSY flag) before it is safe to perform the first
 	// direct-mode operation
-	while ((qmi_hw->direct_csr & QMI_DIRECT_CSR_BUSY_BITS) != 0)
+	while ((XIP_QMI_BASE[QMI_DIRECT_CSR] & QMI_DIRECT_CSR_BUSY_BITS) != 0)
 	{
 	}
 
 	// RESETEN, RESET and quad enable
 	for (uint8_t i = 0; i < 3; i++)
 	{
-		qmi_hw->direct_csr |= QMI_DIRECT_CSR_ASSERT_CS1N_BITS;
+		XIP_QMI_BASE[QMI_DIRECT_CSR] |= QMI_DIRECT_CSR_ASSERT_CS1N_BITS;
 		if (i == 0)
 		{
-			qmi_hw->direct_tx = 0x66;
+			XIP_QMI_BASE[QMI_DIRECT_TX] = 0x66;
 		}
 		else if (i == 1)
 		{
-			qmi_hw->direct_tx = 0x99;
+			XIP_QMI_BASE[QMI_DIRECT_TX] = 0x99;
 		}
 		else
 		{
-			qmi_hw->direct_tx = 0x35;
+			XIP_QMI_BASE[QMI_DIRECT_TX] = 0x35;
 		}
-		while ((qmi_hw->direct_csr & QMI_DIRECT_CSR_BUSY_BITS) != 0)
+		while ((XIP_QMI_BASE[QMI_DIRECT_CSR] & QMI_DIRECT_CSR_BUSY_BITS) != 0)
 		{
 		}
-		qmi_hw->direct_csr &= ~(QMI_DIRECT_CSR_ASSERT_CS1N_BITS);
+		XIP_QMI_BASE[QMI_DIRECT_CSR] &= ~(QMI_DIRECT_CSR_ASSERT_CS1N_BITS);
 		for (size_t j = 0; j < 20; j++)
 		{
 			asm("nop");
 		}
-		(void)qmi_hw->direct_rx;
+		(void)XIP_QMI_BASE[QMI_DIRECT_RX];
 	}
 	// Disable direct csr.
-	qmi_hw->direct_csr &= ~(QMI_DIRECT_CSR_ASSERT_CS1N_BITS | QMI_DIRECT_CSR_EN_BITS);
+	XIP_QMI_BASE[QMI_DIRECT_CSR] &= ~(QMI_DIRECT_CSR_ASSERT_CS1N_BITS | QMI_DIRECT_CSR_EN_BITS);
 
-	qmi_hw->m[1].timing =
+	XIP_QMI_BASE[QMI_M1_TIMING] =
 		QMI_M1_TIMING_PAGEBREAK_VALUE_1024 << QMI_M1_TIMING_PAGEBREAK_LSB | // Break between pages.
 		3 << QMI_M1_TIMING_SELECT_HOLD_LSB | // Delay releasing CS for 3 extra system cycles.
 		1 << QMI_M1_TIMING_COOLDOWN_LSB | 1 << QMI_M1_TIMING_RXDELAY_LSB |
@@ -128,7 +203,7 @@ static size_t __no_inline_not_in_flash_func(setup_psram)(uint psram_cs_pin)
 											  // = 16.62
 		7 << QMI_M1_TIMING_MIN_DESELECT_LSB | // In units of system clock cycles. PSRAM says 50ns.50 / 7.52 = 6.64
 		2 << QMI_M1_TIMING_CLKDIV_LSB;
-	qmi_hw->m[1].rfmt = (QMI_M1_RFMT_PREFIX_WIDTH_VALUE_Q << QMI_M1_RFMT_PREFIX_WIDTH_LSB |
+	XIP_QMI_BASE[QMI_M1_RFMT] = (QMI_M1_RFMT_PREFIX_WIDTH_VALUE_Q << QMI_M1_RFMT_PREFIX_WIDTH_LSB |
 						 QMI_M1_RFMT_ADDR_WIDTH_VALUE_Q << QMI_M1_RFMT_ADDR_WIDTH_LSB |
 						 QMI_M1_RFMT_SUFFIX_WIDTH_VALUE_Q << QMI_M1_RFMT_SUFFIX_WIDTH_LSB |
 						 QMI_M1_RFMT_DUMMY_WIDTH_VALUE_Q << QMI_M1_RFMT_DUMMY_WIDTH_LSB |
@@ -136,8 +211,8 @@ static size_t __no_inline_not_in_flash_func(setup_psram)(uint psram_cs_pin)
 						 QMI_M1_RFMT_DATA_WIDTH_VALUE_Q << QMI_M1_RFMT_DATA_WIDTH_LSB |
 						 QMI_M1_RFMT_PREFIX_LEN_VALUE_8 << QMI_M1_RFMT_PREFIX_LEN_LSB |
 						 QMI_M1_RFMT_SUFFIX_LEN_VALUE_NONE << QMI_M1_RFMT_SUFFIX_LEN_LSB);
-	qmi_hw->m[1].rcmd = 0xeb << QMI_M1_RCMD_PREFIX_LSB | 0 << QMI_M1_RCMD_SUFFIX_LSB;
-	qmi_hw->m[1].wfmt = (QMI_M1_WFMT_PREFIX_WIDTH_VALUE_Q << QMI_M1_WFMT_PREFIX_WIDTH_LSB |
+	XIP_QMI_BASE[QMI_M1_RCMD] = 0xeb << QMI_M1_RCMD_PREFIX_LSB | 0 << QMI_M1_RCMD_SUFFIX_LSB;
+	XIP_QMI_BASE[QMI_M1_WFMT] = (QMI_M1_WFMT_PREFIX_WIDTH_VALUE_Q << QMI_M1_WFMT_PREFIX_WIDTH_LSB |
 						 QMI_M1_WFMT_ADDR_WIDTH_VALUE_Q << QMI_M1_WFMT_ADDR_WIDTH_LSB |
 						 QMI_M1_WFMT_SUFFIX_WIDTH_VALUE_Q << QMI_M1_WFMT_SUFFIX_WIDTH_LSB |
 						 QMI_M1_WFMT_DUMMY_WIDTH_VALUE_Q << QMI_M1_WFMT_DUMMY_WIDTH_LSB |
@@ -145,7 +220,7 @@ static size_t __no_inline_not_in_flash_func(setup_psram)(uint psram_cs_pin)
 						 QMI_M1_WFMT_DATA_WIDTH_VALUE_Q << QMI_M1_WFMT_DATA_WIDTH_LSB |
 						 QMI_M1_WFMT_PREFIX_LEN_VALUE_8 << QMI_M1_WFMT_PREFIX_LEN_LSB |
 						 QMI_M1_WFMT_SUFFIX_LEN_VALUE_NONE << QMI_M1_WFMT_SUFFIX_LEN_LSB);
-	qmi_hw->m[1].wcmd = 0x38 << QMI_M1_WCMD_PREFIX_LSB | 0 << QMI_M1_WCMD_SUFFIX_LSB;
+	XIP_QMI_BASE[QMI_M1_WCMD] = 0x38 << QMI_M1_WCMD_PREFIX_LSB | 0 << QMI_M1_WCMD_SUFFIX_LSB;
 
 	psram_size = 1024 * 1024; // 1 MiB
 	uint8_t size_id = eid >> 5;
@@ -163,8 +238,8 @@ static size_t __no_inline_not_in_flash_func(setup_psram)(uint psram_cs_pin)
 	}
 
 	// Mark that we can write to PSRAM.
-	xip_ctrl_hw->ctrl |= XIP_CTRL_WRITABLE_M1_BITS;
-	restore_interrupts(intr_stash);
+	//xip_ctrl_hw->ctrl |= XIP_CTRL_WRITABLE_M1_BITS;
+	//restore_interrupts(intr_stash);
 	// printf("PSRAM ID: %x %x\n", kgd, eid);
 	return psram_size;
 }

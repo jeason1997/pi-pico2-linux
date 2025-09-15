@@ -37,6 +37,7 @@ static inline void set_uart0_pinmux(void);
 static int get_rom(void **data_addr, size_t* data_size);
 static int wait_for_input(const char *msg);
 static void hexdump(const void *data, size_t size);
+static int psram_setup_and_test(void);
 static int test_executability(void* addr);
 static int wait_for_input(const char *msg);
 static size_t get_devicetree_size(const void *data);
