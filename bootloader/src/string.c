@@ -38,6 +38,12 @@ int isalnum(int c) {
 	return isalpha(c) || isdigit(c);
 }
 
+int isprint(int c) {
+	if(c >= ' ' && c <= '~')
+		return 1;
+	return 0;
+}
+
 /*
  * The rest is shamlessly stolen from libgcc
  */
@@ -87,7 +93,7 @@ memmove (void *dest, const void *src, size_t len)
       *d++ = *s++;
   else
     {
-      char *lasts = s + (len-1);
+      const char *lasts = s + (len-1);
       char *lastd = d + (len-1);
       while (len--)
         *lastd-- = *lasts--;

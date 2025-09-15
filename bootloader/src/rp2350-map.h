@@ -18,5 +18,6 @@
 #define PLL_USB_BASE			((volatile uint32_t *) 0x40058000)
 #define UART0_BASE			((volatile uint32_t *) 0x40070000)
 #define UART1_BASE			((volatile uint32_t *) 0x40078000)
+#define XIP_QMI_BASE			((volatile uint32_t *) 0x400D0000)
 
 #endif // ADDRESS_MAP_H
