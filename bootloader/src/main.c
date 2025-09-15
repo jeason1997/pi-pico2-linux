@@ -73,9 +73,7 @@ int main(void) {
 	uart_puts("\n\n");
 	delay(500000);
 	while (1) {
-		char buffer[100];
-		sprintf(buffer, "Hello, %s! The answer is %d.\n", "World", 42);
-		uart_puts(buffer);
+		printf("Hello, %s! The answer is %d.\r\n", "World", 42);
 		delay(500000);
 		SIO_BASE[0x28/4] = BIT(LED_PIN); // OUT_XOR
 	}

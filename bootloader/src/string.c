@@ -1,6 +1,9 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <ctype.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include "uart.h"
 
 int isxdigit(int c) {
 	if(c >= '0' && c <= '9')
@@ -42,6 +45,21 @@ int isprint(int c) {
 	if(c >= ' ' && c <= '~')
 		return 1;
 	return 0;
+}
+
+int printf(const char *fmt, ...)
+{
+	va_list args;
+	char buf[256];
+	int i;
+
+	va_start(args, fmt);
+	i = vsnprintf(buf, sizeof(buf), fmt, args);
+	va_end(args);
+
+	uart_puts(buf);
+
+	return i;
 }
 
 /*
