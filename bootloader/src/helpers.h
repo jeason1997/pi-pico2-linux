@@ -3,6 +3,7 @@
 
 #define BIT(nr)				(1U << (nr))
 #define NBIT(nr)			(~BIT(nr))
+
 /*
  * Create a contiguous bitmask starting at bit position @l and ending at
  * position @h. For example
@@ -37,7 +38,6 @@ static inline void nop(void) {
 	__asm__ volatile ("nop");
 }
 
-/* Doesnt work idk why */
 static inline void delay(uint32_t count) {
 	__asm__ volatile (
 		".syntax unified\n"

@@ -32,11 +32,10 @@
 #define PSM_PROC_COLD	0
 
 static inline void set_power(uint8_t psm_num, uint8_t psm_val) {
-
 	if (psm_val)
-		PSM_BASE[0] |= 1 << psm_num;
+		PSM_BASE[0] |= BIT(psm_num);
 	else
-		PSM_BASE[1] |= 1 << psm_num;
+		PSM_BASE[1] |= BIT(psm_num);
 
 	loop_until_bit_is_set(PSM_BASE[2], psm_num);
 }

@@ -19,7 +19,7 @@
 #define PADS_DRIVE_8MA	(0x2U << 4)
 #define PADS_DRIVE_12MA	(0x3U << 4)
 
-static inline void set_config(uint8_t pin, uint8_t conf) {
+static inline void set_config(uint8_t pin, uint32_t conf) {
 	PADS_BANK0_BASE[1 + pin] = conf;
 }
 

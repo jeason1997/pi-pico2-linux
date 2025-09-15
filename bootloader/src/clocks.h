@@ -5,14 +5,14 @@
 #include "rp2350-map.h"
 #include "helpers.h"
 
-#define XOSC_CTRL	(0)
-#define XOSC_STATUS	(1)
+#define XOSC_CTRL		(0)
+#define XOSC_STATUS		(1)
 
-#define XOSC_EN		((0xfabu) << (12))
-#define XOSC_DIS	((0xd1eu) << (12))
-#define XOSC_1_15MHz	((0xaa0u))
-#define XOSC_STABLE	(31)
-#define XOSC_ENABLED	(12)
+#define XOSC_EN			((0xfabu) << (12))
+#define XOSC_DIS		((0xd1eu) << (12))
+#define XOSC_1_15MHz		((0xaa0u))
+#define XOSC_STABLE		31
+#define XOSC_ENABLED		12
 
 #define CLOCKS_CTRL_ENABLED	28
 #define CLOCKS_CTRL_ENABLE	11
@@ -35,7 +35,7 @@
 #define PLL_PRIM_PDIV1_SHIFT	16
 #define PLL_PRIM_PDIV2_SHIFT	12
 
-static inline void init_xosc(void) {
+static inline void xosc_init(void) {
 	XOSC_BASE[XOSC_CTRL] = XOSC_EN | XOSC_1_15MHz;
 	loop_until_bit_is_set(XOSC_BASE[XOSC_STATUS], XOSC_STABLE);
 }
@@ -85,4 +85,4 @@ static inline void set_sys_pll(void) {
 	PLL_SYS_BASE[PLL_PWR_REG] &= NBIT(PLL_PWR_POSTDIVPD_SHIFT);
 }
 
-#endif // CLOCKS_H
+#endif /* CLOCKS_H */

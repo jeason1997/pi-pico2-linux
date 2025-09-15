@@ -35,13 +35,15 @@
 #define	RESETS_BUSCTRL		1
 #define	RESETS_ADC		0
 
-/* 1 is device is in reset. 0 is not in reset. */
+/*
+ * A reset_val of 1 means the device is in reset.
+ * A reset_val of 0 means the device is not in reset.
+ */
 static inline void set_reset(uint8_t reset_num, uint8_t reset_val) {
-
 	if (reset_val)
-		RESETS_BASE[0] |= 1 << reset_num;
+		RESETS_BASE[0] |= BIT(reset_num);
 	else
-		RESETS_BASE[0] &= ~(1 << reset_num);
+		RESETS_BASE[0] &= NBIT(eset_num);
 
 	loop_until_bit_is_set(RESETS_BASE[2], reset_num);
 }

@@ -24,7 +24,7 @@ ASFLAGS := $(CFLAGS)
 LDFLAGS := -mthumb -nostdlib -Wl,--gc-sections
 
 S_SOURCES = src/rp2350-vectors.S src/rp2350-crt.S src/rp2350-hdr.S
-C_SOURCES = src/main.c
+C_SOURCES = src/main.c src/uart.c
 
 OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o)))
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(S_SOURCES:.S=.o)))
