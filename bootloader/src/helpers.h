@@ -48,4 +48,7 @@ static inline void delay(uint32_t count) {
 	);
 }
 
+#define mb()	__asm volatile ("fence rw, rw" : : : "memory")
+#define barrier()	__asm volatile ("" : : : "memory")
+
 #endif /* HELPERS_H */

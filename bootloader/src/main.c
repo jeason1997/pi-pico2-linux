@@ -16,6 +16,8 @@
 #include "byteswap.h"
 #include "ctype.h"
 
+#include "linux/irqflags.h"
+
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
 #define LED_PIN			25
@@ -41,6 +43,55 @@ static int psram_setup_and_test(void);
 static int test_executability(void* addr);
 static int wait_for_input(const char *msg);
 static size_t get_devicetree_size(const void *data);
+
+
+//__mem_fence_release
+// The DMB (data memory barrier)
+//__asm volatile ("fence rw, rw" : : : "memory");
+/*
+/* get status and disable interrupts */
+/*
+static inline unsigned long arch_local_irq_save(void) {
+FIXME: there is no i in the linux one
+    pico_default_asm_volatile (
+        "csrrci %0, mstatus, 0x8\n"
+        : "=r" (status) :: "memory"
+    );
+}
+*/
+
+/*
+
+  __force_inline static void restore_interrupts(uint32_t status) {
+	#ifdef __riscv
+	    __compiler_memory_barrier();
+	    if (status & 0x8) {
+		riscv_set_csr(mstatus, 8);
+	    } else {
+		riscv_clear_csr(mstatus, 8);
+	    }
+	    __compiler_memory_barrier();
+	#else
+	    pico_default_asm_volatile ("msr PRIMASK,%0"::"r" (status) : "memory" );
+	#endif
+	}
+
+#define barrier()	__asm volatile ("" : : : "memory")
+__force_inline static void __compiler_memory_barrier(void) {
+    pico_default_asm_volatile ("" : : : "memory");
+}
+*/
+
+/* set interrupt enabled status */
+static inline void arch_local_irq_write(unsigned long flags)
+{
+	barrier();
+	if (arch_irqs_disabled_flags(flags))
+		arch_local_irq_disable();
+	else
+		arch_local_irq_enable();
+	barrier();
+}
 
 int main(void) {
 	int ret;
@@ -79,7 +130,7 @@ int main(void) {
 		SIO_BASE[0x28/4] = BIT(LED_PIN); // OUT_XOR
 	}
 
-	//ret = psram_setup_and_test();
+	ret = psram_setup_and_test();
 	if (ret) {
 		goto exit;
 	}
@@ -172,9 +223,9 @@ static int test_executability(void* addr) {
 	size_t addr_aligned = ((size_t)addr) & ~1;
 	volatile uint16_t* addr_ptr = (volatile uint16_t*)addr_aligned;
 
-	//__mem_fence_acquire();
+	mb();
 	*addr_ptr = ret_inst;
-	//__mem_fence_release();
+	mb();
 
 	printf("Jumping to 0x%08x, aligned from 0x%08x\n", addr_aligned, (size_t)addr);
 	printf("Function pointers: 0x%02x 0x%02x\n", ((uint8_t*)addr_ptr)[0], ((uint8_t*)addr_ptr)[1]);
