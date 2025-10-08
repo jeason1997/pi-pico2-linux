@@ -8,9 +8,9 @@ sudo apt install -y --no-install-recommends ca-certificates patch git make binut
 
 # 下载交叉编译工具链
 wget https://github.com/raspberrypi/pico-sdk-tools/releases/download/v2.0.0-5/riscv-toolchain-14-x86_64-lin.tar.gz && \
-	mkdir -p ~/toolchain && \
-	tar -vxzf riscv-toolchain-14-x86_64-lin.tar.gz -C ~/toolchain && \
-	rm riscv-toolchain-14-x86_64-lin.tar.gz
+mkdir -p ~/toolchain && \
+tar -vxzf riscv-toolchain-14-x86_64-lin.tar.gz -C ~/toolchain && \
+rm riscv-toolchain-14-x86_64-lin.tar.gz
 
 git clone https://github.com/Mr-Bossman/pi-pico2-linux
 
@@ -23,9 +23,11 @@ make -C buildroot BR2_EXTERNAL=$PWD/ raspberrypi-pico2_defconfig
 
 # 构建Linux，并调用"support/scripts/genimage.sh"将生成的内核、设备树、根文件系统打包为一个可以烧写的lash-image.bin
 make -C buildroot
+# 构建完毕后的镜像文件位于：buildroot/output/images/flash-image.bin
 
 # 编译pico主程序，用于引导Linux
 PICO_TOOLCHAIN_PATH=~/toolchain/ PICO_SDK_FETCH_FROM_GIT=1 make -C psram-bootloader
+# 构建完毕后的程序位于：psram-bootloader/build/psram-bootloader.uf2
 
 # 将Linux系统烧录到pico上
 make -C psram-bootloader flash-kernel
